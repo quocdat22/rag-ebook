@@ -75,6 +75,8 @@ class RetrievedChunk(BaseModel):
 class VectorStore(Protocol):
     def add(self, chunks: list[Chunk], embeddings: list[list[float]]) -> None: ...
     def query(self, query_embedding: list[float], top_k: int = 5) -> list[RetrievedChunk]: ...
+    def delete_by_source(self, source_file: str) -> int: ...
+    def list_sources(self) -> list[SourceInfo]: ...
 
 
 class ChromaVectorStore:
@@ -85,6 +87,8 @@ Implementation notes:
 - `chromadb.PersistentClient(path=persist_dir)`; `get_or_create_collection(collection_name, metadata={"hnsw:space": "cosine"})` — **cosine là chuẩn cho RAG text**.
 - `add()`: `collection.add(ids=[c.chunk_id...], documents=[c.text...], embeddings=embeddings, metadatas=[{"page_number": ..., "source_file": ...}])`; validate số lượng khớp nhau trước khi add.
 - `query()`: `collection.query(query_embeddings=[query_embedding], n_results=top_k, include=["documents", "metadatas", "distances"])` → build lại `RetrievedChunk`; `score = 1 - distance` (cosine distance → similarity).
+- `delete_by_source(source_file)`: `collection.get(where={"source_file": ...})` → `collection.delete(ids)`; trả số chunk đã xoá. Dùng cho re-index (xoá cũ trước khi add mới) và API `DELETE /documents/{file}`.
+- `list_sources()`: `collection.get(include=["metadatas"])` → aggregate đếm theo `source_file`, sorted theo filename; trả `list[SourceInfo]` (phục vụ API `GET /documents`). Với collection rất lớn nên dùng phân trang — chấp nhận toàn bộ ở MVP.
 - **Test chạy in-memory:** constructor nhận `persist_dir` — test dùng `chromadb.EphemeralClient()` (persist_dir=None) hoặc `tempfile.mkdtemp()`.
 
 ## 3. Test chi tiết

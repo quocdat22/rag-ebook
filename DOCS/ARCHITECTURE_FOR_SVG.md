@@ -111,11 +111,13 @@ Các bước:
 ## 5. Interface layer
 
 ### FastAPI — `src/api/main.py`
-- `create_app(index_pipeline, query_pipeline, upload_dir)` — **factory + DI** (test truyền fake).
+- `create_app(index_pipeline, query_pipeline, store, upload_dir)` — **factory + DI** (test truyền fake).
 - Endpoints:
   - `GET /health` → `{"status": "ok"}` (không probe network — không phụ thuộc Ollama/DeepSeek).
   - `POST /documents` (multipart `file`) → sanitize tên file, lưu vào `data/uploads/`, chạy index
     pipeline đồng bộ → `{"filename", "chunks_indexed"}`. Chỉ nhận `.pdf`, file rỗng bị chặn.
+  - `GET /documents` → `store.list_sources()` → `{"documents": [{"filename", "chunks"}]}` (file đã index, sorted).
+  - `DELETE /documents/{source_file}` → `store.delete_by_source()` → `{"filename", "chunks_deleted"}`; chưa index → 404.
   - `POST /query` (JSON `{"question", "top_k?", "min_score?"}`) → `{"answer", "citations": [{chunk_id, source_file, page_number, text}]}`.
 - Exception handler tập trung cho hệ `RagEbookError`: `EmptyDocumentError`→400,
   `GenerationError`→502, còn lại→503; không bao giờ lộ traceback thô.

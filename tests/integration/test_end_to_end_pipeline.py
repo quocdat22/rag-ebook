@@ -11,7 +11,7 @@ import pytest
 
 from src.pipeline.index_pipeline import IndexPipeline
 from src.pipeline.query_pipeline import QueryPipeline
-from src.vectorstore.chroma_store import ChromaVectorStore
+from src.vectorstore.chroma_store import ChromaVectorStore, SourceInfo
 
 FIXTURE_PDF = "tests/fixtures/sample_tech_ebook.pdf"
 
@@ -82,3 +82,21 @@ def test_reindex_same_file_no_duplicates(tmp_path):
     assert second == first
     # Re-indexing replaces, never duplicates.
     assert store.count() == first
+
+
+@pytest.mark.integration
+def test_list_and_delete_sources(tmp_path):
+    store = make_store(tmp_path)
+    pipeline = IndexPipeline(FakeEmbedder(), store, chunk_size=700, chunk_overlap=100)
+    chunks_indexed = pipeline.run(FIXTURE_PDF)
+
+    sources = store.list_sources()
+    assert sources == [
+        SourceInfo(source_file="sample_tech_ebook.pdf", chunk_count=chunks_indexed)
+    ]
+
+    assert store.delete_by_source("sample_tech_ebook.pdf") == chunks_indexed
+    assert store.count() == 0
+    assert store.list_sources() == []
+    # Deleting again is a no-op (0 removed), never a crash.
+    assert store.delete_by_source("sample_tech_ebook.pdf") == 0

@@ -24,3 +24,17 @@ class QueryResponse(BaseModel):
 class IngestResponse(BaseModel):
     filename: str
     chunks_indexed: int
+
+
+class DocumentInfo(BaseModel):
+    filename: str
+    chunks: int
+
+
+class DocumentListResponse(BaseModel):
+    documents: list[DocumentInfo]
+
+
+class DeleteResponse(BaseModel):
+    filename: str
+    chunks_deleted: int

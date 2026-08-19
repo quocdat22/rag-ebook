@@ -34,6 +34,9 @@ class FakeStore:
         self.deleted_sources.append(source_file)
         return 0
 
+    def list_sources(self) -> list[object]:
+        return []
+
 
 class FakeLLM:
     def __init__(self, answer: str):

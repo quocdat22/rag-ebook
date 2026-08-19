@@ -15,7 +15,7 @@ Embedding chạy **local miễn phí** qua Ollama; generation gọi **DeepSeek A
   (cấu hình qua `MIN_SCORE`, mặc định `0.3`; đặt `0.0` để tắt lọc).
 - **Generation**: DeepSeek (`deepseek-v4-flash`) với system prompt cố định (tận dụng prefix cache
   giảm chi phí), temperature thấp, answer bám context + citation `[n]`.
-- **Giao diện**: FastAPI (`/query`, `/documents`, `/health` — Swagger tại `/docs`) + demo Streamlit.
+- **Giao diện**: FastAPI (ingest/liệt kê/xoá `POST|GET|DELETE /documents`, `POST /query`, `GET /health` — Swagger tại `/docs`) + demo Streamlit.
 - 1 hoặc nhiều PDF chung collection `rag_ebook`, lọc theo metadata `source_file`.
 
 ## 2. Kiến trúc
@@ -84,12 +84,23 @@ curl http://127.0.0.1:8000/health
 curl -X POST http://127.0.0.1:8000/documents \
   -F "file=@path/to/book.pdf"                # → {"filename": "...", "chunks_indexed": N}
 
+curl http://127.0.0.1:8000/documents
+# → {"documents": [{"filename": "...", "chunks": N}, ...]} (rỗng → {"documents": []})
+
+curl -X DELETE http://127.0.0.1:8000/documents/book.pdf
+# → {"filename": "book.pdf", "chunks_deleted": N} (chưa index → 404)
+
 curl -X POST http://127.0.0.1:8000/query \
   -H "Content-Type: application/json" \
   -d '{"question": "What is a vector database?", "top_k": 5, "min_score": 0.4}'
 # → {"answer": "... [1] ...", "citations": [{"chunk_id": ..., "source_file": ..., "page_number": N, "text": ...}]}
 # (top_k / min_score là tùy chọn — bỏ đi sẽ dùng giá trị trong .env)
 ```
+
+> `GET /documents` liệt kê các file **đã index** (nguồn sự thật là vector store),
+> kèm số chunk mỗi file. `DELETE /documents/{file}` xoá toàn bộ chunk của file đó
+> khỏi index (trả 404 nếu chưa từng index); bản copy staging trong `data/uploads/`
+> không bị đụng tới.
 
 ### Streamlit demo (local, không deploy công khai — không có auth)
 
@@ -100,7 +111,7 @@ uv run streamlit run src/ui/streamlit_app.py    # http://localhost:8501
 ## 5. Test
 
 ```bash
-uv run pytest                 # toàn bộ: unit + integration (64 test)
+uv run pytest                 # toàn bộ: unit + integration (83 test)
 uv run pytest -m "not integration"   # chỉ unit test, chạy nhanh
 uv run pytest -m integration         # chỉ integration (PDF fixture + Chroma temp, fake embedder/LLM)
 ```

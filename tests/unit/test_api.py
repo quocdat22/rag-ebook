@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from src.api.main import create_app
 from src.api.schemas import QueryResponse
 from src.pipeline.query_pipeline import AnswerResult, Citation
+from src.vectorstore.chroma_store import SourceInfo
 
 FIXTURE_PDF = Path("tests/fixtures/sample_tech_ebook.pdf")
 
@@ -49,10 +50,27 @@ class FakeQueryPipeline:
         return self.result
 
 
-def make_app(index=None, query=None, tmp_path: Path = Path("/tmp")):
+class FakeStore:
+    """Minimal VectorStore fake for list/delete endpoints; records calls."""
+
+    def __init__(self, sources: list[SourceInfo] | None = None):
+        self.sources = sources or []
+        self.delete_calls: list[str] = []
+        self.delete_results: dict[str, int] = {}
+
+    def list_sources(self) -> list[SourceInfo]:
+        return self.sources
+
+    def delete_by_source(self, source_file: str) -> int:
+        self.delete_calls.append(source_file)
+        return self.delete_results.get(source_file, 0)
+
+
+def make_app(index=None, query=None, store=None, tmp_path: Path = Path("/tmp")):
     index = index if index is not None else FakeIndexPipeline()
     query = query if query is not None else FakeQueryPipeline()
-    return create_app(index, query, upload_dir=tmp_path)
+    store = store if store is not None else FakeStore()
+    return create_app(index, query, store, upload_dir=tmp_path)
 
 
 def test_health():
@@ -129,6 +147,50 @@ def test_documents_rejects_non_pdf(tmp_path):
     )
     assert response.status_code == 400
     assert "PDF" in response.json()["detail"]
+
+
+def test_documents_list_empty(tmp_path):
+    client = TestClient(make_app(tmp_path=tmp_path))
+    response = client.get("/documents")
+    assert response.status_code == 200
+    assert response.json() == {"documents": []}
+
+
+def test_documents_list_returns_sources(tmp_path):
+    store = FakeStore(
+        sources=[
+            SourceInfo(source_file="alpha.pdf", chunk_count=1),
+            SourceInfo(source_file="zeta.pdf", chunk_count=5),
+        ]
+    )
+    client = TestClient(make_app(store=store, tmp_path=tmp_path))
+    response = client.get("/documents")
+    assert response.status_code == 200
+    assert response.json() == {
+        "documents": [
+            {"filename": "alpha.pdf", "chunks": 1},
+            {"filename": "zeta.pdf", "chunks": 5},
+        ]
+    }
+
+
+def test_documents_delete_existing(tmp_path):
+    store = FakeStore()
+    store.delete_results["book.pdf"] = 12
+    client = TestClient(make_app(store=store, tmp_path=tmp_path))
+    response = client.delete("/documents/book.pdf")
+    assert response.status_code == 200
+    assert response.json() == {"filename": "book.pdf", "chunks_deleted": 12}
+    assert store.delete_calls == ["book.pdf"]
+
+
+def test_documents_delete_missing_404(tmp_path):
+    store = FakeStore()
+    client = TestClient(make_app(store=store, tmp_path=tmp_path))
+    response = client.delete("/documents/never-indexed.pdf")
+    assert response.status_code == 404
+    assert "never-indexed.pdf" in response.json()["detail"]
+    assert store.delete_calls == ["never-indexed.pdf"]
 
 
 def test_pipeline_error_maps_to_500(tmp_path):

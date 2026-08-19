@@ -38,6 +38,9 @@ class FakeStore:
     def delete_by_source(self, source_file: str) -> int:
         return 0
 
+    def list_sources(self) -> list[object]:
+        return []
+
 
 def make_chunk(chunk_id: str = "c", score: float = 0.9) -> RetrievedChunk:
     return RetrievedChunk(

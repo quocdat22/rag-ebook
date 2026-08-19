@@ -5,7 +5,7 @@ import uuid
 import pytest
 
 from src.chunking.splitter import Chunk
-from src.vectorstore.chroma_store import ChromaVectorStore
+from src.vectorstore.chroma_store import ChromaVectorStore, SourceInfo
 
 
 def make_chunk(text: str, chunk_id: str, page: int = 1, source: str = "book.pdf") -> Chunk:
@@ -88,3 +88,45 @@ def test_add_count_mismatch_raises():
     store = make_store()
     with pytest.raises(ValueError, match="length mismatch"):
         store.add([make_chunk("a", "a")], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+
+
+def test_list_sources_empty():
+    store = make_store()
+    assert store.list_sources() == []
+
+
+def test_list_sources_aggregates_and_sorts():
+    store = make_store()
+    store.add(
+        [
+            make_chunk("a1", "a1", source="zeta.pdf"),
+            make_chunk("a2", "a2", source="zeta.pdf"),
+            make_chunk("b1", "b1", source="alpha.pdf"),
+        ],
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0]],
+    )
+    sources = store.list_sources()
+    assert sources == [
+        SourceInfo(source_file="alpha.pdf", chunk_count=1),
+        SourceInfo(source_file="zeta.pdf", chunk_count=2),
+    ]
+
+
+def test_delete_by_source_removes_chunks():
+    store = make_store()
+    store.add(
+        [
+            make_chunk("a1", "a1", source="book.pdf"),
+            make_chunk("a2", "a2", source="book.pdf"),
+            make_chunk("b1", "b1", source="other.pdf"),
+        ],
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0]],
+    )
+    assert store.delete_by_source("book.pdf") == 2
+    assert store.count() == 1
+    assert [s.source_file for s in store.list_sources()] == ["other.pdf"]
+
+
+def test_delete_by_source_missing_returns_zero():
+    store = make_store()
+    assert store.delete_by_source("never-indexed.pdf") == 0

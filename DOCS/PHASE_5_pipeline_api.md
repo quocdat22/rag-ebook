@@ -9,7 +9,7 @@
 ## 1. Mục tiêu
 
 - 2 pipeline: `index_pipeline` (ingest PDF → Chroma) và `query_pipeline` (question → `AnswerResult`) (SPEC 5.7).
-- FastAPI: `POST /documents`, `POST /query`, `GET /health` (SPEC 5.8, F7).
+- FastAPI: `POST|GET /documents`, `DELETE /documents/{source_file}`, `POST /query`, `GET /health` (SPEC 5.8, F7).
 - Integration test full pipeline với fake embedder + fake LLM + Chroma thật (temp dir) (SPEC mục 6).
 
 ## 2. Thiết kế
@@ -100,6 +100,20 @@ class QueryResponse(BaseModel):
 class IngestResponse(BaseModel):
     filename: str
     chunks_indexed: int
+
+
+class DocumentInfo(BaseModel):
+    filename: str
+    chunks: int
+
+
+class DocumentListResponse(BaseModel):
+    documents: list[DocumentInfo]
+
+
+class DeleteResponse(BaseModel):
+    filename: str
+    chunks_deleted: int
 ```
 
 Endpoints:
@@ -107,13 +121,20 @@ Endpoints:
 | Endpoint | Hành vi |
 |---|---|
 | `POST /documents` | nhận `UploadFile` PDF → lưu tạm `data/uploads/` → `index_pipeline.run(...)` → `IngestResponse`. File không phải PDF / rỗng → 400/422 với message rõ ràng |
+| `GET /documents` | `store.list_sources()` → `DocumentListResponse` — liệt kê file **đã index** (distinct `source_file` + số chunk), sorted theo filename; rỗng → `{"documents": []}` |
+| `DELETE /documents/{source_file}` | `store.delete_by_source(source_file)` (dùng lại method có sẵn) → `DeleteResponse`; chưa index → **404** |
 | `POST /query` | `QueryRequest` (hỗ trợ override `top_k`/`min_score` per-request, `None` → dùng settings) → `QueryResponse` |
 | `GET /health` | `{"status": "ok"}` (probe Ollama/DeepSeek để **false** mặc định — không bắt health-check phải gọi network) |
 
 App factory để test dễ mock:
 
 ```python
-def create_app(index_pipeline: IndexPipeline, query_pipeline: QueryPipeline) -> FastAPI: ...
+def create_app(
+    index_pipeline: IndexPipeline,
+    query_pipeline: QueryPipeline,
+    store: VectorStore,
+    upload_dir: Path = UPLOAD_DIR,
+) -> FastAPI: ...
 ```
 
 Chạy: `uv run uvicorn src.api.main:app --reload` (main.py tự build app mặc định từ `settings`).
@@ -144,6 +165,10 @@ Tạo app bằng `create_app()` với **pipeline fake** (không cần Chroma/Oll
 | `test_query_empty_question` | question rỗng → 422 |
 | `test_documents_uploads` | POST /documents với PDF fixture (multipart) → 200, `chunks_indexed > 0` |
 | `test_documents_rejects_non_pdf` | upload file .txt → 4xx |
+| `test_documents_list_empty` | GET /documents khi store rỗng → 200, `{"documents": []}` |
+| `test_documents_list_returns_sources` | GET /documents → 200, đúng `{"documents": [{"filename", "chunks"}, ...]}` |
+| `test_documents_delete_existing` | DELETE /documents/book.pdf → 200, `chunks_deleted` khớp, store được gọi đúng tên file |
+| `test_documents_delete_missing_404` | DELETE file chưa index → 404, `detail` chứa tên file |
 | `test_pipeline_error_maps_to_500` | fake pipeline raise → 500 (hoặc mã đã chọn), không trả traceback trần |
 
 ### `tests/unit/test_pipelines.py` (bổ sung, nếu integration chưa đủ chi tiết)
@@ -162,6 +187,12 @@ curl http://127.0.0.1:8000/health
 # ingest (cần Ollama chạy)
 curl -X POST http://127.0.0.1:8000/documents \
   -F "file=@tests/fixtures/sample_tech_ebook.pdf"
+
+# liệt kê file đã index
+curl http://127.0.0.1:8000/documents
+
+# xoá một file khỏi index (chưa index → 404)
+curl -X DELETE http://127.0.0.1:8000/documents/sample_tech_ebook.pdf
 
 # query (cần DEEPSEEK_API_KEY trong .env)
 curl -X POST http://127.0.0.1:8000/query \

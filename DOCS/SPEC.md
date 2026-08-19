@@ -286,6 +286,8 @@ rag_ebook/
 
 - **Trách nhiệm:** expose FastAPI endpoints:
   - `POST /documents` — upload & ingest PDF
+  - `GET /documents` — liệt kê file đã index (filename + số chunk)
+  - `DELETE /documents/{source_file}` — xoá toàn bộ chunk của một file khỏi index (404 nếu chưa index)
   - `POST /query` — gửi câu hỏi, nhận answer
   - `GET /health`
 - **Test:** dùng `fastapi.testclient.TestClient`, mock pipeline layer, assert status code, response schema (dùng Pydantic schema validate).

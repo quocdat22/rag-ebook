@@ -23,6 +23,11 @@ class RetrievedChunk(BaseModel):
     score: float  # cosine similarity: higher = more similar
 
 
+class SourceInfo(BaseModel):
+    source_file: str
+    chunk_count: int
+
+
 def _duplicates(ids: list[str]) -> list[str]:
     """Ids that appear more than once, in first-seen order."""
     seen: set[str] = set()
@@ -42,6 +47,8 @@ class VectorStore(Protocol):
     def query(self, query_embedding: list[float], top_k: int = 5) -> list[RetrievedChunk]: ...
 
     def delete_by_source(self, source_file: str) -> int: ...
+
+    def list_sources(self) -> list[SourceInfo]: ...
 
 
 class ChromaVectorStore:
@@ -94,6 +101,23 @@ class ChromaVectorStore:
         if ids:
             self._collection.delete(ids=ids)
         return len(ids)
+
+    def list_sources(self) -> list[SourceInfo]:
+        """Distinct indexed source files with their chunk counts, sorted by filename.
+
+        Pulls all metadata into memory — fine for the MVP; a paginated scan is
+        a v2 concern for very large collections.
+        """
+        metadatas = self._collection.get(include=["metadatas"])["metadatas"]
+        counts: dict[str, int] = {}
+        for meta in metadatas or []:
+            source_file = (meta or {}).get("source_file")
+            if isinstance(source_file, str) and source_file:
+                counts[source_file] = counts.get(source_file, 0) + 1
+        return [
+            SourceInfo(source_file=source_file, chunk_count=count)
+            for source_file, count in sorted(counts.items())
+        ]
 
     def count(self) -> int:
         """Total number of stored chunks."""

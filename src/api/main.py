@@ -4,11 +4,13 @@ Endpoints:
 - ``GET /health``        -> {"status": "ok"} (no network probes — health checks
                            must not depend on Ollama/DeepSeek being up).
 - ``POST /documents``    -> upload + index a PDF.
+- ``GET /documents``     -> list indexed documents (filename + chunk count).
+- ``DELETE /documents/{source_file}`` -> remove one indexed document (404 if not indexed).
 - ``POST /query``        -> question -> answer with citations.
 
-``create_app`` takes the pipelines as dependencies (dependency injection) so
-tests can pass fakes. ``app`` (module level) wires the real services from
-``Settings`` for ``uvicorn src.api.main:app``.
+``create_app`` takes the pipelines and the store as dependencies (dependency
+injection) so tests can pass fakes. ``app`` (module level) wires the real
+services from ``Settings`` for ``uvicorn src.api.main:app``.
 """
 
 import logging
@@ -19,7 +21,15 @@ from typing import Annotated
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 
-from src.api.schemas import CitationOut, IngestResponse, QueryRequest, QueryResponse
+from src.api.schemas import (
+    CitationOut,
+    DeleteResponse,
+    DocumentInfo,
+    DocumentListResponse,
+    IngestResponse,
+    QueryRequest,
+    QueryResponse,
+)
 from src.config import Settings
 from src.embedding.ollama_client import OllamaEmbeddingClient
 from src.errors import (
@@ -31,7 +41,7 @@ from src.generation.deepseek_client import DeepSeekClient
 from src.logging_config import setup_logging
 from src.pipeline.index_pipeline import IndexPipeline
 from src.pipeline.query_pipeline import QueryPipeline
-from src.vectorstore.chroma_store import ChromaVectorStore
+from src.vectorstore.chroma_store import ChromaVectorStore, VectorStore
 
 setup_logging()
 
@@ -50,6 +60,7 @@ def sanitize_filename(name: str) -> str:
 def create_app(
     index_pipeline: IndexPipeline,
     query_pipeline: QueryPipeline,
+    store: VectorStore,
     upload_dir: Path = UPLOAD_DIR,
 ) -> FastAPI:
     app = FastAPI(title="rag-ebook", version="0.1.0")
@@ -92,6 +103,27 @@ def create_app(
             raise HTTPException(status_code=500, detail=f"Internal error: {exc}") from exc
         return IngestResponse(filename=filename, chunks_indexed=chunks_indexed)
 
+    @app.get("/documents", response_model=DocumentListResponse)
+    def list_documents() -> DocumentListResponse:
+        """List indexed documents (source of truth = vector store)."""
+        sources = store.list_sources()
+        return DocumentListResponse(
+            documents=[
+                DocumentInfo(filename=source.source_file, chunks=source.chunk_count)
+                for source in sources
+            ]
+        )
+
+    @app.delete("/documents/{source_file}", response_model=DeleteResponse)
+    def delete_document(source_file: str) -> DeleteResponse:
+        """Delete every chunk of one indexed document; 404 if it was not indexed."""
+        removed = store.delete_by_source(source_file)
+        if removed == 0:
+            raise HTTPException(
+                status_code=404, detail=f"No indexed document '{source_file}'"
+            )
+        return DeleteResponse(filename=source_file, chunks_deleted=removed)
+
     @app.post("/query", response_model=QueryResponse)
     def query(request: QueryRequest) -> QueryResponse:
         try:
@@ -111,7 +143,7 @@ def create_app(
     return app
 
 
-def _default_pipelines() -> tuple[IndexPipeline, QueryPipeline]:
+def _default_pipelines() -> tuple[IndexPipeline, QueryPipeline, VectorStore]:
     settings = Settings()
     store = ChromaVectorStore(
         collection_name=DEFAULT_COLLECTION, persist_dir=settings.chroma_persist_dir
@@ -124,8 +156,8 @@ def _default_pipelines() -> tuple[IndexPipeline, QueryPipeline]:
     )
     index_pipeline = IndexPipeline(embedder, store, settings.chunk_size, settings.chunk_overlap)
     query_pipeline = QueryPipeline(embedder, store, llm, settings.top_k, settings.min_score)
-    return index_pipeline, query_pipeline
+    return index_pipeline, query_pipeline, store
 
 
-index_pipeline, query_pipeline = _default_pipelines()
-app = create_app(index_pipeline, query_pipeline)
+index_pipeline, query_pipeline, store = _default_pipelines()
+app = create_app(index_pipeline, query_pipeline, store)
