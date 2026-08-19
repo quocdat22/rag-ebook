@@ -1,6 +1,6 @@
 # PHASE 3 — Retrieval
 
-**Trạng thái:** [ ] Chưa bắt đầu
+**Trạng thái:** [x] Hoàn thành
 **Phụ thuộc:** Phase 2 (dùng `EmbeddingClient`, `VectorStore`, `RetrievedChunk`)
 **Output:** `question → list[RetrievedChunk]` đúng top-k, có unit test với fake đôi (test double).
 
@@ -92,9 +92,9 @@ uv run python scripts/smoke_retrieve.py "What is a vector database?"
 
 ## 5. Tiêu chí hoàn thành (DoD)
 
-- [ ] Unit test pass — **không cần Ollama/Chroma thật**
-- [ ] Smoke retrieve bằng Ollama thật trả kết quả hợp lý với câu hỏi về nội dung fixture PDF
-- [ ] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → pass
+- [x] Unit test pass — **không cần Ollama/Chroma thật**
+- [x] Smoke retrieve bằng Ollama thật trả kết quả hợp lý với câu hỏi về nội dung fixture PDF
+- [x] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → pass
 
 ## 6. Rủi ro & lưu ý
 
