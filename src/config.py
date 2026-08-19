@@ -23,5 +23,8 @@ class Settings(BaseSettings):
     chunk_overlap: int = 100
     top_k: int = 5
 
+    # Logging
+    log_level: str = "INFO"
+
 
 settings = Settings()  # singleton dùng chung toàn app

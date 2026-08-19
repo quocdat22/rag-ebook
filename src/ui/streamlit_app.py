@@ -18,6 +18,7 @@ import streamlit as st
 
 from src.config import Settings
 from src.embedding.ollama_client import OllamaEmbeddingClient, OllamaUnavailableError
+from src.errors import ConfigurationError
 from src.generation.deepseek_client import DeepSeekClient, GenerationError
 from src.pipeline.index_pipeline import IndexPipeline
 from src.pipeline.query_pipeline import QueryPipeline
@@ -43,7 +44,11 @@ def get_resources():
 
 def main() -> None:
     st.set_page_config(page_title="rag-ebook demo", page_icon="📚", layout="wide")
-    settings, store, embedder, llm, index_pipeline = get_resources()
+    try:
+        settings, store, embedder, llm, index_pipeline = get_resources()
+    except ConfigurationError as exc:
+        st.error(str(exc))
+        st.stop()
 
     st.sidebar.header("📚 rag-ebook")
     st.sidebar.caption("Local RAG demo — Ollama embedding + DeepSeek generation")

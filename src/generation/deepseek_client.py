@@ -10,6 +10,8 @@ from typing import Protocol
 import openai
 from openai import OpenAI
 
+from src.errors import ConfigurationError, GenerationError  # re-exported for back-compat
+
 # Errors considered "transient/expected" for a generation call; everything else
 # (e.g. programming mistakes) propagates as-is.
 _TRANSIENT_ERRORS = (
@@ -25,10 +27,6 @@ class LLMClient(Protocol):
     def generate(self, system_prompt: str, user_prompt: str) -> str: ...
 
 
-class GenerationError(RuntimeError):
-    """Raised when DeepSeek fails or returns an unusable response."""
-
-
 class DeepSeekClient:
     """DeepSeek API client (OpenAI-compatible endpoint)."""
 
@@ -40,6 +38,10 @@ class DeepSeekClient:
         timeout: float = 60.0,
         client: OpenAI | None = None,  # inject a fake in tests
     ) -> None:
+        if not api_key:
+            raise ConfigurationError(
+                "DEEPSEEK_API_KEY is not set — add it to .env (see .env.example)"
+            )
         self._model = model
         self._client = (
             client

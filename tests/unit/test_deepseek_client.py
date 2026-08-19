@@ -4,6 +4,7 @@ import httpx2
 import openai
 import pytest
 
+from src.errors import ConfigurationError
 from src.generation.deepseek_client import DeepSeekClient, GenerationError
 from src.generation.prompt_templates import SYSTEM_PROMPT
 
@@ -109,3 +110,8 @@ def test_rate_limit_raises():
     client, _ = make_client(FakeCompletions(error=error))
     with pytest.raises(GenerationError, match="rate|429"):
         client.generate("s", "u")
+
+
+def test_missing_api_key_raises_configuration_error():
+    with pytest.raises(ConfigurationError, match="DEEPSEEK_API_KEY"):
+        DeepSeekClient(api_key="")

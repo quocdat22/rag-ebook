@@ -13,12 +13,15 @@ FIXTURE_PDF = Path("tests/fixtures/sample_tech_ebook.pdf")
 
 
 class FakeIndexPipeline:
-    def __init__(self, chunks_indexed: int = 3):
+    def __init__(self, chunks_indexed: int = 3, error: Exception | None = None):
         self.chunks_indexed = chunks_indexed
+        self.error = error
         self.calls: list[str] = []
 
     def run(self, pdf_path: str) -> int:
         self.calls.append(pdf_path)
+        if self.error is not None:
+            raise self.error
         return self.chunks_indexed
 
 
@@ -99,3 +102,28 @@ def test_pipeline_error_maps_to_500(tmp_path):
     response = client.post("/query", json={"question": "q"})
     assert response.status_code == 500
     assert "Traceback" not in response.text  # no raw traceback leak
+
+
+def test_ollama_down_maps_to_503(tmp_path):
+    from src.errors import OllamaUnavailableError
+
+    query = FakeQueryPipeline(
+        error=OllamaUnavailableError("Ollama not running — try: ollama serve")
+    )
+    client = TestClient(make_app(query=query, tmp_path=tmp_path))
+    response = client.post("/query", json={"question": "q"})
+    assert response.status_code == 503
+    assert "ollama serve" in response.json()["detail"]
+
+
+def test_empty_pdf_maps_to_400(tmp_path):
+    from src.errors import EmptyDocumentError
+
+    index = FakeIndexPipeline(
+        error=EmptyDocumentError("No extractable text in PDF (scanned/image-only?)")
+    )
+    client = TestClient(make_app(index=index, tmp_path=tmp_path))
+    with FIXTURE_PDF.open("rb") as pdf:
+        response = client.post("/documents", files={"file": ("blank.pdf", pdf, "application/pdf")})
+    assert response.status_code == 400
+    assert "No extractable text" in response.json()["detail"]

@@ -16,16 +16,24 @@ import re
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse
 
 from src.api.schemas import CitationOut, IngestResponse, QueryRequest, QueryResponse
 from src.config import Settings
-from src.embedding.ollama_client import OllamaEmbeddingClient, OllamaUnavailableError
-from src.generation.deepseek_client import DeepSeekClient, GenerationError
-from src.ingestion.pdf_loader import EmptyDocumentError
+from src.embedding.ollama_client import OllamaEmbeddingClient
+from src.errors import (
+    EmptyDocumentError,
+    GenerationError,
+    RagEbookError,
+)
+from src.generation.deepseek_client import DeepSeekClient
+from src.logging_config import setup_logging
 from src.pipeline.index_pipeline import IndexPipeline
 from src.pipeline.query_pipeline import QueryPipeline
 from src.vectorstore.chroma_store import ChromaVectorStore
+
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +54,18 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(title="rag-ebook", version="0.1.0")
 
+    @app.exception_handler(RagEbookError)
+    async def rag_error_handler(request: Request, exc: RagEbookError) -> JSONResponse:
+        """Map the central exception hierarchy to clean HTTP responses (no raw tracebacks)."""
+        if isinstance(exc, EmptyDocumentError):
+            status_code = 400  # client error: the uploaded file has no text
+        elif isinstance(exc, GenerationError):
+            status_code = 502  # upstream LLM failure
+        else:
+            status_code = 503  # Ollama down / configuration problem
+        logger.warning("%s %s -> %d: %s", request.method, request.url.path, status_code, exc)
+        return JSONResponse(status_code=status_code, content={"detail": str(exc)})
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -63,7 +83,9 @@ def create_app(
         dest.write_bytes(content)
         try:
             chunks_indexed = index_pipeline.run(str(dest))
-        except (EmptyDocumentError, ValueError, FileNotFoundError) as exc:
+        except RagEbookError:
+            raise  # handled by the global handler (EmptyDocumentError -> 400)
+        except (ValueError, FileNotFoundError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except Exception as exc:  # never leak a raw traceback to the client
             logger.exception("Ingest failed for %s", filename)
@@ -74,10 +96,8 @@ def create_app(
     def query(request: QueryRequest) -> QueryResponse:
         try:
             result = query_pipeline.run(request.question)
-        except GenerationError as exc:
-            raise HTTPException(status_code=502, detail=f"Generation failed: {exc}") from exc
-        except OllamaUnavailableError as exc:
-            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except RagEbookError:
+            raise  # handled by the global handler (503/502 with actionable message)
         except Exception as exc:  # never leak a raw traceback to the client
             logger.exception("Query failed for %r", request.question)
             raise HTTPException(status_code=500, detail=f"Internal error: {exc}") from exc

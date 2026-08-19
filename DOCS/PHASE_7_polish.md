@@ -1,6 +1,6 @@
 # PHASE 7 — Polish & chuẩn bị trình bày
 
-**Trạng thái:** [ ] Chưa bắt đầu
+**Trạng thái:** [x] Hoàn thành
 **Phụ thuộc:** Phase 5 (và Phase 6 nếu làm UI)
 **Output:** Repo sẵn sàng trình bày: README đầy đủ, error handling + logging nhất quán, toàn bộ check pass.
 
@@ -72,12 +72,12 @@ uv run pytest              # toàn bộ, kể cả integration nếu có service
 
 ## 3. Tiêu chí hoàn thành (DoD)
 
-- [ ] README đủ 8 mục trên; người khác clone về làm theo chạy được
-- [ ] Thử tắt Ollama / xoá API key → lỗi hiển thị đúng message hướng dẫn
-- [ ] `uv run ruff check --fix .` → `uv run ruff format .` → `uv run pytest` → `uv run mypy src`: **4 lệnh pass**
-- [ ] (Nếu làm Docker) `docker compose up` chạy được end-to-end
-- [ ] Đã đọc trang pricing DeepSeek chính thức, ước tính được chi phí cho buổi demo (SPEC mục 9)
-- [ ] Commit cuối + tag (nếu dùng git): `v0.1.0-mvp`
+- [x] README đủ 8 mục trên; người khác clone về làm theo chạy được
+- [x] Thử tắt Ollama / xoá API key → lỗi hiển thị đúng message hướng dẫn
+- [x] `uv run ruff check --fix .` → `uv run ruff format .` → `uv run pytest` → `uv run mypy src`: **4 lệnh pass**
+- [ ] (Nếu làm Docker) `docker compose up` chạy được end-to-end — **bỏ qua Docker** (ghi rõ trong README: chạy local, không container)
+- [x] Đã đọc trang pricing DeepSeek chính thức, ước tính được chi phí cho buổi demo (SPEC mục 9)
+- [x] Commit cuối + tag (nếu dùng git): `v0.1.0-mvp`
 
 ## 4. Rủi ro & lưu ý
 

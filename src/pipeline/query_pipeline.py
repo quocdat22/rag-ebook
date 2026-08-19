@@ -4,6 +4,9 @@ Follows SPEC 4.2: retrieve top-k chunks, build the user prompt, call the LLM,
 then map the ``[n]`` citations in the answer back to the actual sources.
 """
 
+import logging
+import time
+
 from pydantic import BaseModel
 
 from src.embedding.ollama_client import EmbeddingClient
@@ -11,6 +14,8 @@ from src.generation.deepseek_client import LLMClient
 from src.generation.prompt_templates import SYSTEM_PROMPT, build_user_prompt, extract_cited_indices
 from src.retrieval.retriever import retrieve
 from src.vectorstore.chroma_store import RetrievedChunk, VectorStore
+
+logger = logging.getLogger(__name__)
 
 
 class Citation(BaseModel):
@@ -40,9 +45,12 @@ class QueryPipeline:
         self._top_k = top_k
 
     def run(self, question: str) -> AnswerResult:
+        t0 = time.perf_counter()
         chunks = retrieve(question, self._embedder, self._store, top_k=self._top_k)
+        logger.info("Retrieved %d chunks in %.2fs", len(chunks), time.perf_counter() - t0)
         user_prompt = build_user_prompt(chunks, question)
         answer = self._llm.generate(SYSTEM_PROMPT, user_prompt)
+        logger.info("Generation done in %.2fs", time.perf_counter() - t0)
 
         citations: list[Citation] = []
         for index in extract_cited_indices(answer):

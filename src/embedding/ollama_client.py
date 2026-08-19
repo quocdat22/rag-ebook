@@ -21,17 +21,11 @@ from typing import Protocol, Self
 
 import httpx
 
+from src.errors import OllamaHTTPError, OllamaUnavailableError  # re-exported for back-compat
+
 DEFAULT_QUERY_INSTRUCTION = (
     "Given a web search query, retrieve relevant passages that answer the query"
 )
-
-
-class OllamaUnavailableError(RuntimeError):
-    """Ollama is not running, unreachable, or did not respond in time."""
-
-
-class OllamaHTTPError(RuntimeError):
-    """Ollama answered with a non-2xx HTTP status."""
 
 
 class EmbeddingClient(Protocol):

@@ -5,9 +5,7 @@ from pathlib import Path
 import pymupdf
 from pydantic import BaseModel
 
-
-class EmptyDocumentError(Exception):
-    """Raised when a PDF yields no extractable text (empty or image-only/scan)."""
+from src.errors import EmptyDocumentError  # re-exported for back-compat
 
 
 class Document(BaseModel):
