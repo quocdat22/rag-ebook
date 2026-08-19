@@ -1,6 +1,6 @@
 # PHASE 5 — Pipeline + FastAPI
 
-**Trạng thái:** [ ] Chưa bắt đầu
+**Trạng thái:** [x] Hoàn thành
 **Phụ thuộc:** Phase 3 + Phase 4
 **Output:** API `/query` trả lời đúng kèm citation; integration test end-to-end chạy được **không cần** Ollama/DeepSeek thật.
 
@@ -167,9 +167,9 @@ Hoặc mở http://127.0.0.1:8000/docs (Swagger UI) để thử trực quan.
 
 ## 5. Tiêu chí hoàn thành (DoD)
 
-- [ ] Integration + API test pass — **không cần** Ollama/DeepSeek chạy
-- [ ] Chạy tay cả 3 endpoint bằng service thật → trả lời đúng kèm citation đúng trang
-- [ ] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → pass (integration test chạy đầy đủ ở local)
+- [x] Integration + API test pass — **không cần** Ollama/DeepSeek chạy
+- [x] Chạy tay cả 3 endpoint bằng service thật → trả lời đúng kèm citation đúng trang
+- [x] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → pass (integration test chạy đầy đủ ở local)
 
 ## 6. Rủi ro & lưu ý
 

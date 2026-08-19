@@ -41,6 +41,8 @@ class VectorStore(Protocol):
 
     def query(self, query_embedding: list[float], top_k: int = 5) -> list[RetrievedChunk]: ...
 
+    def delete_by_source(self, source_file: str) -> int: ...
+
 
 class ChromaVectorStore:
     """Chroma-backed vector store with cosine similarity."""
@@ -85,6 +87,17 @@ class ChromaVectorStore:
                 {"page_number": c.page_number, "source_file": c.source_file} for c in chunks
             ],
         )
+
+    def delete_by_source(self, source_file: str) -> int:
+        """Delete every chunk of one source file; returns the number removed."""
+        ids = self._collection.get(where={"source_file": source_file}, include=[])["ids"]
+        if ids:
+            self._collection.delete(ids=ids)
+        return len(ids)
+
+    def count(self) -> int:
+        """Total number of stored chunks."""
+        return self._collection.count()
 
     def query(self, query_embedding: list[float], top_k: int = 5) -> list[RetrievedChunk]:
         """Return the top-k most similar chunks with cosine similarity scores."""

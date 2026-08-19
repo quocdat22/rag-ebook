@@ -35,6 +35,9 @@ class FakeStore:
     def add(self, *args, **kwargs) -> None:
         pass
 
+    def delete_by_source(self, source_file: str) -> int:
+        return 0
+
 
 def make_chunk(chunk_id: str = "c", score: float = 0.9) -> RetrievedChunk:
     return RetrievedChunk(
