@@ -1,6 +1,6 @@
 # PHASE 0 — Setup môi trường & repo skeleton
 
-**Trạng thái:** [ ] Chưa bắt đầu
+**Trạng thái:** [x] Hoàn thành
 **Phụ thuộc:** Không
 **Output:** Repo skeleton chạy được `uv run pytest` (pass), Ollama local với `qwen3-embedding:0.6b` hoạt động, module config `.env` dùng được.
 
@@ -225,12 +225,12 @@ git commit -m "Phase 0: project skeleton + config"   # sau khi các check ở m�
 
 ## 4. Tiêu chí hoàn thành (DoD)
 
-- [ ] `uv run python -c "from src.config import settings; print(settings.ollama_embed_model)"` in `qwen3-embedding:0.6b`
-- [ ] `uv run pytest` → **pass** (≥1 test xanh)
-- [ ] `uv run ruff check --fix . && uv run ruff format .` → không lỗi
-- [ ] `ollama list` có `qwen3-embedding:0.6b`; curl `/api/embeddings` trả 1024 số
-- [ ] `.env` đã có `DEEPSEEK_API_KEY` thật
-- [ ] Commit đầu tiên hoàn tất
+- [x] `uv run python -c "from src.config import settings; print(settings.ollama_embed_model)"` in `qwen3-embedding:0.6b`
+- [x] `uv run pytest` → **pass** (≥1 test xanh)
+- [x] `uv run ruff check --fix . && uv run ruff format .` → không lỗi
+- [x] `ollama list` có `qwen3-embedding:0.6b`; curl `/api/embeddings` trả 1024 số
+- [x] `.env` đã có `DEEPSEEK_API_KEY` thật
+- [x] Commit đầu tiên hoàn tất
 
 ## 5. Rủi ro & lưu ý
 
