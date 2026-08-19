@@ -1,6 +1,6 @@
 # PHASE 1 — Ingestion (PDF parsing) + Chunking
 
-**Trạng thái:** [ ] Chưa bắt đầu
+**Trạng thái:** [x] Hoàn thành
 **Phụ thuộc:** Phase 0
 **Output:** `pdf → list[Chunk]` hoạt động, unit test đầy đủ, PDF fixture commit trong repo.
 
@@ -124,10 +124,10 @@ Dùng text giả lập tự build trong test (không phụ thuộc PDF fixture):
 
 ## 4. Tiêu chí hoàn thành (DoD)
 
-- [ ] Chạy tay: `uv run python -c "from src.ingestion.pdf_loader import load_pdf; from src.chunking.splitter import split_documents; docs = load_pdf('tests/fixtures/sample_tech_ebook.pdf'); chunks = split_documents(docs); print(len(docs), len(chunks))"` → in số trang + số chunk hợp lý
-- [ ] `uv run pytest tests/unit/test_pdf_loader.py tests/unit/test_splitter.py` → toàn bộ pass
-- [ ] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → 3 lệnh pass
-- [ ] Fixture PDF + script tạo fixture đã commit
+- [x] Chạy tay: `uv run python -c "from src.ingestion.pdf_loader import load_pdf; from src.chunking.splitter import split_documents; docs = load_pdf('tests/fixtures/sample_tech_ebook.pdf'); chunks = split_documents(docs); print(len(docs), len(chunks))"` → in số trang + số chunk hợp lý (3 trang, 3 chunk)
+- [x] `uv run pytest tests/unit/test_pdf_loader.py tests/unit/test_splitter.py` → toàn bộ pass
+- [x] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → 3 lệnh pass
+- [x] Fixture PDF + script tạo fixture đã commit
 
 ## 5. Rủi ro & lưu ý
 
