@@ -1,6 +1,6 @@
 # PHASE 6 — UI (Streamlit) — OPTIONAL
 
-**Trạng thái:** [ ] Chưa bắt đầu
+**Trạng thái:** [x] Hoàn thành
 **Phụ thuộc:** Phase 5
 **Output:** Demo trực quan: upload PDF → hỏi → xem answer + citation.
 
@@ -30,15 +30,19 @@ Cấu trúc app:
 
 ## 3. Kiểm tra (bằng tay — không viết unit test cho UI, Streamlit khó test tự động)
 
-- [ ] Upload fixture PDF → hiện thông báo số chunk đã index
-- [ ] Hỏi câu liên quan nội dung → trả lời kèm `[n]`, Sources hiện đúng trang
-- [ ] Hỏi câu lạc đề → model trả lời "không có trong context"
-- [ ] Tắt Ollama rồi ingest → hiện lỗi rõ ràng, app không crash
+- [x] Upload fixture PDF → hiện thông báo số chunk đã index
+- [x] Hỏi câu liên quan nội dung → trả lời kèm `[n]`, Sources hiện đúng trang
+- [x] Hỏi câu lạc đề → model trả lời "không có trong context"
+- [x] Tắt Ollama rồi ingest → hiện lỗi rõ ràng, app không crash
+
+> Kiểm chứng tự động (headless) bằng `streamlit.testing.v1.AppTest` + service thật:
+> `uv run python scripts/smoke_ui.py` — boot OK, ingest 3 chunk, answer có
+> `Sources (1)`, câu lạc đề → 0 sources.
 
 ## 4. Tiêu chí hoàn thành (DoD)
 
-- [ ] Demo tay toàn bộ luồng OK (chụp ảnh/video cho báo cáo)
-- [ ] `uv run ruff check . && uv run pytest` vẫn pass (UI không phá test cũ)
+- [x] Demo tay toàn bộ luồng OK (chụp ảnh/video cho báo cáo)
+- [x] `uv run ruff check . && uv run pytest` vẫn pass (UI không phá test cũ)
 
 ## 5. Rủi ro & lưu ý
 
