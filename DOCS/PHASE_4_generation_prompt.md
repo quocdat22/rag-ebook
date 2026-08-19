@@ -1,6 +1,6 @@
 # PHASE 4 — Generation (DeepSeek) + Prompt template
 
-**Trạng thái:** [ ] Chưa bắt đầu
+**Trạng thái:** [x] Hoàn thành
 **Phụ thuộc:** Phase 2 (dùng `RetrievedChunk` để build context)
 **Output:** `context + question → answer` có citation marker `[n]`, unit test với mock API (không tốn tiền).
 
@@ -125,9 +125,9 @@ uv run python scripts/smoke_generate.py
 
 ## 5. Tiêu chí hoàn thành (DoD)
 
-- [ ] Unit test pass — không tốn tiền API
-- [ ] Smoke generate 1 lần bằng API thật → answer có `[n]`
-- [ ] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → pass
+- [x] Unit test pass — không tốn tiền API
+- [x] Smoke generate 1 lần bằng API thật → answer có `[n]`
+- [x] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → pass
 
 ## 6. Rủi ro & lưu ý
 
