@@ -1,6 +1,6 @@
 # PHASE 2 — Embedding (Ollama) + Vector store (Chroma)
 
-**Trạng thái:** [ ] Chưa bắt đầu
+**Trạng thái:** [x] Hoàn thành
 **Phụ thuộc:** Phase 1 (dùng `Chunk`)
 **Output:** Index được 1 PDF vào Chroma; cả 2 module có unit test với mock, không cần service thật.
 
@@ -127,10 +127,10 @@ uv run python scripts/smoke_index.py
 
 ## 5. Tiêu chí hoàn thành (DoD)
 
-- [ ] Unit test 2 module pass — **không cần Ollama chạy**
-- [ ] Smoke index fixture PDF vào `data/chroma` thành công với Ollama thật
-- [ ] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → pass
-- [ ] `data/` không bị commit (gitignore hoạt động)
+- [x] Unit test 2 module pass — **không cần Ollama chạy**
+- [x] Smoke index fixture PDF vào `data/chroma` thành công với Ollama thật
+- [x] `uv run ruff check --fix . && uv run ruff format . && uv run pytest` → pass
+- [x] `data/` không bị commit (gitignore hoạt động)
 
 ## 6. Rủi ro & lưu ý
 
