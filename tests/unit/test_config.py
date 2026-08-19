@@ -7,3 +7,4 @@ def test_settings_defaults():
     assert s.chunk_size == 700
     assert s.chunk_overlap == 100
     assert s.deepseek_model == "deepseek-v4-flash"
+    assert s.min_score == 0.3

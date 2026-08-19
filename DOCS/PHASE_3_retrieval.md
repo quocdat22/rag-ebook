@@ -100,5 +100,8 @@ uv run python scripts/smoke_retrieve.py "What is a vector database?"
 
 - **Chất lượng retrieval phụ thuộc hoàn toàn embedding similarity** (không rerank ở MVP) — nếu câu trả lời cuối tệ, đây là điểm nghi ngờ đầu tiên (SPEC mục 9).
 - **Model instruction-aware:** câu hỏi phải được embed bằng `embed_query()` (có prefix `Instruct: ...`) — nếu vô tình dùng `embed()` không prefix cho query, retrieval sẽ giảm chất lượng 1–5%.
-- `min_score` để mặc định 0.0; chỉ bật khi thấy câu trả lời lẫn thông tin ngoài tài liệu.
+- `min_score` mặc định **0.3** trong `Settings`/`.env` (wire xuyên suốt `QueryPipeline → retrieve()`,
+  có thể override per-request qua API hoặc slider Streamlit); đặt `MIN_SCORE=0.0` để tắt lọc.
+  Chỉ tinh chỉnh ngưỡng khi thấy câu trả lời lẫn thông tin ngoài tài liệu — ngưỡng quá cao có thể
+  làm rỗng context và hạ chất lượng câu trả lời.
 - Phase này code lượng nhỏ — thời gian còn dư nên dành để viết thêm test edge case và đọc lại Phase 1/2 (chunking là nơi ảnh hưởng chất lượng lớn nhất).

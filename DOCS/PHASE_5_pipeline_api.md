@@ -60,8 +60,14 @@ class QueryPipeline:
         store: VectorStore,
         llm: LLMClient,
         top_k: int,
+        min_score: float,
     ): ...
-    def run(self, question: str) -> AnswerResult: ...
+    def run(
+        self,
+        question: str,
+        top_k: int | None = None,
+        min_score: float | None = None,
+    ) -> AnswerResult: ...  # None → dùng giá trị từ constructor (Settings)
 ```
 
 Luồng (bám SPEC 4.2): `retrieve(question, ...) → build_user_prompt(chunks, question) → llm.generate(SYSTEM_PROMPT, user_prompt) → extract_cited_indices(answer) → map index → Citation`.
@@ -76,6 +82,7 @@ Luồng (bám SPEC 4.2): `retrieve(question, ...) → build_user_prompt(chunks, 
 class QueryRequest(BaseModel):
     question: str
     top_k: int | None = None  # None → lấy từ settings
+    min_score: float | None = None  # None → lấy từ settings; ngoài [0, 1] → 422
 
 
 class CitationOut(BaseModel):
@@ -100,7 +107,7 @@ Endpoints:
 | Endpoint | Hành vi |
 |---|---|
 | `POST /documents` | nhận `UploadFile` PDF → lưu tạm `data/uploads/` → `index_pipeline.run(...)` → `IngestResponse`. File không phải PDF / rỗng → 400/422 với message rõ ràng |
-| `POST /query` | `QueryRequest` → `QueryResponse` |
+| `POST /query` | `QueryRequest` (hỗ trợ override `top_k`/`min_score` per-request, `None` → dùng settings) → `QueryResponse` |
 | `GET /health` | `{"status": "ok"}` (probe Ollama/DeepSeek để **false** mặc định — không bắt health-check phải gọi network) |
 
 App factory để test dễ mock:

@@ -72,7 +72,7 @@ Question ──▶ [1. retrieval] ──▶ top-k RetrievedChunk[] ──▶ [2.
    │                                                              │
    └─ embed_query (Ollama, prefix "Instruct: …")          [3. generation]
         └─ Chroma query (cosine)                          deepseek_client.py
-        └─ lọc min_score (mặc định 0)                     (DeepSeek chat completions)
+        └─ lọc min_score (pipeline truyền MIN_SCORE từ Settings, mặc định 0.3; 0.0 = tắt)                     (DeepSeek chat completions)
         └─ sort score giảm dần                                    │
                                                      [4. citation mapping]
                                                      answer + citations[] ──▶ Response
@@ -116,7 +116,7 @@ Các bước:
   - `GET /health` → `{"status": "ok"}` (không probe network — không phụ thuộc Ollama/DeepSeek).
   - `POST /documents` (multipart `file`) → sanitize tên file, lưu vào `data/uploads/`, chạy index
     pipeline đồng bộ → `{"filename", "chunks_indexed"}`. Chỉ nhận `.pdf`, file rỗng bị chặn.
-  - `POST /query` (JSON `{"question", "top_k?"}`) → `{"answer", "citations": [{chunk_id, source_file, page_number, text}]}`.
+  - `POST /query` (JSON `{"question", "top_k?", "min_score?"}`) → `{"answer", "citations": [{chunk_id, source_file, page_number, text}]}`.
 - Exception handler tập trung cho hệ `RagEbookError`: `EmptyDocumentError`→400,
   `GenerationError`→502, còn lại→503; không bao giờ lộ traceback thô.
 - `app` module-level wire service thật từ `Settings` (chạy `uvicorn src.api.main:app`).
@@ -133,7 +133,7 @@ Các bước:
   `OLLAMA_HOST` (localhost:11434), `OLLAMA_EMBED_MODEL` (qwen3-embedding:0.6b),
   `DEEPSEEK_API_KEY` (bắt buộc), `DEEPSEEK_MODEL` (deepseek-v4-flash),
   `DEEPSEEK_BASE_URL` (api.deepseek.com), `CHROMA_PERSIST_DIR` (./data/chroma),
-  `CHUNK_SIZE` (700), `CHUNK_OVERLAP` (100), `TOP_K` (5), `LOG_LEVEL` (INFO).
+  `CHUNK_SIZE` (700), `CHUNK_OVERLAP` (100), `TOP_K` (5), `MIN_SCORE` (0.3), `LOG_LEVEL` (INFO).
 - **Errors** — `src/errors.py`: `RagEbookError` (base) → `EmptyDocumentError`,
   `OllamaUnavailableError`, `OllamaHTTPError`, `GenerationError`, `ConfigurationError`.
   Mọi message đều kèm hướng xử lý (start Ollama, set API key…).

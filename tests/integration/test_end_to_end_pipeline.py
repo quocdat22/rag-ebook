@@ -56,7 +56,10 @@ def test_index_then_query_full_flow(tmp_path):
     assert chunks_indexed > 0
     assert store.count() == chunks_indexed
 
-    query_pipeline = QueryPipeline(embedder, store, llm, top_k=3)
+    # min_score=0.0 explicitly: e2e covers the flow only; threshold filtering is
+    # unit-tested with deterministic scores (sha256 pseudo-embeddings here can
+    # fall below any non-zero threshold).
+    query_pipeline = QueryPipeline(embedder, store, llm, top_k=3, min_score=0.0)
     result = query_pipeline.run("What is a vector database?")
     assert result.answer
     assert result.used_chunks

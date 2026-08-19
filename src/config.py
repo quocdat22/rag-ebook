@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     chunk_size: int = 700
     chunk_overlap: int = 100
     top_k: int = 5
+    min_score: float = 0.3  # cosine similarity; MIN_SCORE=0.0 để tắt lọc
 
     # Logging
     log_level: str = "INFO"

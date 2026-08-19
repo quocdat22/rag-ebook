@@ -53,11 +53,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("question")
     parser.add_argument("--collection", default=None)
-    parser.add_argument("--top-k", type=int, default=5)
-    parser.add_argument("--min-score", type=float, default=0.0)
+    parser.add_argument("--top-k", type=int, default=None)
+    parser.add_argument("--min-score", type=float, default=None)
     args = parser.parse_args()
 
     settings = Settings()
+    # CLI flags fall back to .env / Settings defaults (Top-K, MIN_SCORE).
+    top_k = args.top_k if args.top_k is not None else settings.top_k
+    min_score = args.min_score if args.min_score is not None else settings.min_score
     collection_name = resolve_collection(settings.chroma_persist_dir, args.collection)
     store = ChromaVectorStore(
         collection_name=collection_name, persist_dir=settings.chroma_persist_dir
@@ -65,15 +68,13 @@ def main() -> int:
 
     print(
         f"Question: {args.question!r}  (collection: {collection_name}, "
-        f"top_k={args.top_k}, min_score={args.min_score})"
+        f"top_k={top_k}, min_score={min_score})"
     )
     try:
         with OllamaEmbeddingClient(
             model=settings.ollama_embed_model, host=settings.ollama_host
         ) as embedder:
-            results = retrieve(
-                args.question, embedder, store, top_k=args.top_k, min_score=args.min_score
-            )
+            results = retrieve(args.question, embedder, store, top_k=top_k, min_score=min_score)
     except OllamaUnavailableError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1

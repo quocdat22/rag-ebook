@@ -43,10 +43,10 @@ class FakeLLM:
         return self.answer
 
 
-def make_retrieved(chunk_id: str, text: str, page: int = 1) -> RetrievedChunk:
+def make_retrieved(chunk_id: str, text: str, page: int = 1, score: float = 0.9) -> RetrievedChunk:
     return RetrievedChunk(
         chunk=Chunk(chunk_id=chunk_id, text=text, page_number=page, source_file="b.pdf"),
-        score=0.9,
+        score=score,
     )
 
 
@@ -54,7 +54,7 @@ def test_query_pipeline_filters_out_of_range_citations():
     chunks = [make_retrieved("a::p1::0", "alpha"), make_retrieved("b::p2::1", "beta")]
     store = FakeStore(chunks)
     llm = FakeLLM("Answer uses [1] and [99] and [2].")
-    pipeline = QueryPipeline(FakeEmbedder(), store, llm, top_k=5)
+    pipeline = QueryPipeline(FakeEmbedder(), store, llm, top_k=5, min_score=0.0)
     result = pipeline.run("question")
 
     assert result.answer == "Answer uses [1] and [99] and [2]."
@@ -68,10 +68,59 @@ def test_query_pipeline_filters_out_of_range_citations():
 def test_query_pipeline_empty_context():
     store = FakeStore([])  # nothing retrieved
     llm = FakeLLM("I don't know [1].")
-    pipeline = QueryPipeline(FakeEmbedder(), store, llm, top_k=5)
+    pipeline = QueryPipeline(FakeEmbedder(), store, llm, top_k=5, min_score=0.0)
     result = pipeline.run("question")
     assert result.citations == []
     assert result.used_chunks == []
+
+
+def test_query_pipeline_filters_below_min_score():
+    """Regression: min_score set on the pipeline must reach retrieve() — the
+    wiring that used to be missing (always defaulted to 0.0 in the real flow)."""
+    chunks = [
+        make_retrieved("a::p1::0", "alpha", score=0.9),
+        make_retrieved("b::p2::1", "beta", score=0.2),
+        make_retrieved("c::p3::2", "gamma", score=0.1),
+    ]
+    store = FakeStore(chunks)
+    llm = FakeLLM("Answer uses [1].")
+    pipeline = QueryPipeline(FakeEmbedder(), store, llm, top_k=5, min_score=0.5)
+    result = pipeline.run("question")
+    assert [c.chunk.chunk_id for c in result.used_chunks] == ["a::p1::0"]
+    assert [c.chunk_id for c in result.citations] == ["a::p1::0"]
+
+
+def test_query_pipeline_min_score_zero_keeps_all():
+    chunks = [
+        make_retrieved("a::p1::0", "alpha", score=0.3),
+        make_retrieved("b::p2::1", "beta", score=0.2),
+        make_retrieved("c::p3::2", "gamma", score=0.1),
+    ]
+    store = FakeStore(chunks)
+    llm = FakeLLM("Answer [1] [2] [3].")
+    pipeline = QueryPipeline(FakeEmbedder(), store, llm, top_k=5, min_score=0.0)
+    result = pipeline.run("question")
+    assert len(result.used_chunks) == 3
+    assert len(result.citations) == 3
+
+
+def test_query_pipeline_run_overrides():
+    chunks = [
+        make_retrieved("a::p1::0", "alpha", score=0.9),
+        make_retrieved("b::p2::1", "beta", score=0.2),
+        make_retrieved("c::p3::2", "gamma", score=0.1),
+    ]
+    store = FakeStore(chunks)
+    llm = FakeLLM("Answer [1].")
+    pipeline = QueryPipeline(FakeEmbedder(), store, llm, top_k=5, min_score=0.5)
+    # Construction default applies when run() omits the params.
+    assert len(pipeline.run("q").used_chunks) == 1
+    # Per-call min_score override loosens the threshold.
+    assert len(pipeline.run("q", min_score=0.0).used_chunks) == 3
+    # Per-call min_score override tightens it -> empty context, no crash.
+    assert pipeline.run("q", min_score=0.95).used_chunks == []
+    # Per-call top_k override limits the count.
+    assert len(pipeline.run("q", top_k=1, min_score=0.0).used_chunks) == 1
 
 
 def test_index_pipeline_empty_pdf_raises_without_adding(tmp_path):

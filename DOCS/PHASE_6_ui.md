@@ -24,7 +24,8 @@ Cấu trúc app:
 1. **Init resources 1 lần** (`@st.cache_resource`): tạo `OllamaEmbeddingClient`, `ChromaVectorStore("rag_ebook", persist_dir)`, `DeepSeekClient` từ `settings` — không tạo lại mỗi lần rerun.
 2. **Tab "Ingest"**: `st.file_uploader(type=["pdf"])` → lưu tạm `data/uploads/` → gọi `IndexPipeline.run` → `st.success(f"Indexed {n} chunks")`; lỗi → `st.error` với message rõ ràng.
 3. **Tab "Ask"**: `st.chat_input` / `st.text_input` câu hỏi → `QueryPipeline.run` → `st.markdown(answer)`; citations trong `st.expander("Sources")`: mỗi dòng `📄 {source_file} — p.{page_number}` + đoạn trích (giới hạn ~300 ký tự).
-4. **Sidebar**: số chunk đã index (đếm từ collection), slider `top_k`, model đang dùng.
+4. **Sidebar**: số chunk đã index (đếm từ collection), slider `top_k`, slider `min_score`
+   (ngưỡng similarity, mặc định theo `MIN_SCORE` trong settings), model đang dùng.
 
 **Không kết nối Streamlit với FastAPI** — app gọi thẳng pipeline layer (cùng process). Streamlit là demo; FastAPI là interface "thật".
 

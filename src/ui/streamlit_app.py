@@ -57,6 +57,14 @@ def main() -> None:
     st.sidebar.write(f"Embedding model: `{settings.ollama_embed_model}`")
     st.sidebar.write(f"LLM model: `{settings.deepseek_model}`")
     top_k = st.sidebar.slider("top_k", min_value=1, max_value=10, value=settings.top_k)
+    min_score = st.sidebar.slider(
+        "min_score",
+        min_value=0.0,
+        max_value=1.0,
+        value=float(settings.min_score),
+        step=0.05,
+        help="Bỏ chunk có similarity < ngưỡng này (0.0 = tắt lọc)",
+    )
     st.sidebar.caption("Đổi `.env` → restart app (client được cache)")
 
     tab_ingest, tab_ask = st.tabs(["📤 Ingest PDF", "💬 Ask a question"])
@@ -82,7 +90,7 @@ def main() -> None:
         st.subheader("Ask about the indexed books")
         question = st.chat_input("Ask a question about the uploaded book…")
         if question:
-            query_pipeline = QueryPipeline(embedder, store, llm, top_k)
+            query_pipeline = QueryPipeline(embedder, store, llm, top_k, min_score)
             with st.spinner("Thinking…"):
                 try:
                     result = query_pipeline.run(question)

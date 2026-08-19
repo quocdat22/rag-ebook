@@ -134,6 +134,7 @@ CHROMA_PERSIST_DIR=./data/chroma
 CHUNK_SIZE=700
 CHUNK_OVERLAP=100
 TOP_K=5
+MIN_SCORE=0.3   # ngưỡng similarity tối thiểu (0.0 = tắt lọc)
 ```
 
 ```bash

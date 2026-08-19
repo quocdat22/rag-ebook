@@ -56,7 +56,7 @@ def main() -> int:
         index_pipeline.run(str(FIXTURE_PDF))
     print(f"Collection '{DEFAULT_COLLECTION}': {store.count()} chunks\n")
 
-    query_pipeline = QueryPipeline(embedder, store, llm, settings.top_k)
+    query_pipeline = QueryPipeline(embedder, store, llm, settings.top_k, settings.min_score)
     try:
         for question in DEMO_QUESTIONS:
             print("=" * 70)

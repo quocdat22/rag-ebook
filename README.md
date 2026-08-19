@@ -11,7 +11,8 @@ Embedding chạy **local miễn phí** qua Ollama; generation gọi **DeepSeek A
 - **Embedding local**: Ollama + `qwen3-embedding:0.6b` (1024-dim, instruction-aware, context 32k),
   có prefix `Instruct: ...` riêng cho phía câu hỏi.
 - **Vector store**: ChromaDB persist local, cosine similarity, idempotent re-index (không nhân bản).
-- **Retrieval**: `question → top-k chunks` có ngưỡng `min_score` chống context không liên quan.
+- **Retrieval**: `question → top-k chunks` có ngưỡng `min_score` chống context không liên quan
+  (cấu hình qua `MIN_SCORE`, mặc định `0.3`; đặt `0.0` để tắt lọc).
 - **Generation**: DeepSeek (`deepseek-v4-flash`) với system prompt cố định (tận dụng prefix cache
   giảm chi phí), temperature thấp, answer bám context + citation `[n]`.
 - **Giao diện**: FastAPI (`/query`, `/documents`, `/health` — Swagger tại `/docs`) + demo Streamlit.
@@ -85,8 +86,9 @@ curl -X POST http://127.0.0.1:8000/documents \
 
 curl -X POST http://127.0.0.1:8000/query \
   -H "Content-Type: application/json" \
-  -d '{"question": "What is a vector database?"}'
+  -d '{"question": "What is a vector database?", "top_k": 5, "min_score": 0.4}'
 # → {"answer": "... [1] ...", "citations": [{"chunk_id": ..., "source_file": ..., "page_number": N, "text": ...}]}
+# (top_k / min_score là tùy chọn — bỏ đi sẽ dùng giá trị trong .env)
 ```
 
 ### Streamlit demo (local, không deploy công khai — không có auth)
@@ -119,6 +121,7 @@ uv run pytest -m integration         # chỉ integration (PDF fixture + Chroma t
 | `CHROMA_PERSIST_DIR` | `./data/chroma` | thư mục persist vector store |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | `700` / `100` | kích thước chunk ước tính theo token |
 | `TOP_K` | `5` | số chunk retrieve mặc định |
+| `MIN_SCORE` | `0.3` | ngưỡng similarity tối thiểu để giữ chunk (cosine; `0.0` = tắt lọc) |
 | `LOG_LEVEL` | `INFO` | `DEBUG`/`INFO`/`WARNING`/`ERROR` |
 
 ## 7. Giới hạn đã biết

@@ -35,8 +35,15 @@ class FakeQueryPipeline:
             used_chunks=[],
         )
         self.error = error
+        self.calls: list[tuple[str, int | None, float | None]] = []
 
-    def run(self, question: str) -> AnswerResult:
+    def run(
+        self,
+        question: str,
+        top_k: int | None = None,
+        min_score: float | None = None,
+    ) -> AnswerResult:
+        self.calls.append((question, top_k, min_score))
         if self.error is not None:
             raise self.error
         return self.result
@@ -69,6 +76,35 @@ def test_query_returns_schema(tmp_path):
 def test_query_empty_question(tmp_path):
     client = TestClient(make_app(tmp_path=tmp_path))
     response = client.post("/query", json={"question": ""})
+    assert response.status_code == 422
+
+
+def test_query_passes_per_request_overrides(tmp_path):
+    query = FakeQueryPipeline()
+    client = TestClient(make_app(query=query, tmp_path=tmp_path))
+    response = client.post("/query", json={"question": "q", "top_k": 2, "min_score": 0.4})
+    assert response.status_code == 200
+    assert query.calls[-1] == ("q", 2, 0.4)
+
+
+def test_query_defaults_to_none_overrides(tmp_path):
+    query = FakeQueryPipeline()
+    client = TestClient(make_app(query=query, tmp_path=tmp_path))
+    response = client.post("/query", json={"question": "q"})
+    assert response.status_code == 200
+    # None -> QueryPipeline falls back to the values from Settings.
+    assert query.calls[-1] == ("q", None, None)
+
+
+def test_query_rejects_invalid_min_score(tmp_path):
+    client = TestClient(make_app(tmp_path=tmp_path))
+    response = client.post("/query", json={"question": "q", "min_score": 1.5})
+    assert response.status_code == 422
+
+
+def test_query_rejects_invalid_top_k(tmp_path):
+    client = TestClient(make_app(tmp_path=tmp_path))
+    response = client.post("/query", json={"question": "q", "top_k": 0})
     assert response.status_code == 422
 
 

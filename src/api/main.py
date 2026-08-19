@@ -95,7 +95,9 @@ def create_app(
     @app.post("/query", response_model=QueryResponse)
     def query(request: QueryRequest) -> QueryResponse:
         try:
-            result = query_pipeline.run(request.question)
+            result = query_pipeline.run(
+                request.question, top_k=request.top_k, min_score=request.min_score
+            )
         except RagEbookError:
             raise  # handled by the global handler (503/502 with actionable message)
         except Exception as exc:  # never leak a raw traceback to the client
@@ -121,7 +123,7 @@ def _default_pipelines() -> tuple[IndexPipeline, QueryPipeline]:
         base_url=settings.deepseek_base_url,
     )
     index_pipeline = IndexPipeline(embedder, store, settings.chunk_size, settings.chunk_overlap)
-    query_pipeline = QueryPipeline(embedder, store, llm, settings.top_k)
+    query_pipeline = QueryPipeline(embedder, store, llm, settings.top_k, settings.min_score)
     return index_pipeline, query_pipeline
 
 
