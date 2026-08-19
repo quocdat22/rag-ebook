@@ -19,22 +19,8 @@ Embedding chạy **local miễn phí** qua Ollama; generation gọi **DeepSeek A
 
 ## 2. Kiến trúc
 
-```mermaid
-flowchart LR
-    subgraph Indexing
-        A[PDF] --> B[ingestion: parse text + metadata]
-        B --> C[chunking: code-block-aware split]
-        C --> D[embedding: Ollama local]
-        D --> E[vectorstore: Chroma persist]
-    end
-    subgraph Query
-        Q[Question] --> QE[embedding: embed_query]
-        QE --> R[retrieval: top-k cosine]
-        R --> P[prompt builder: context + question]
-        P --> G[generation: DeepSeek API]
-        G --> AN[Answer + citations [n]]
-    end
-```
+![Sơ đồ kiến trúc rag-ebook](assets/rag-ebook-architecture.svg)
+
 
 ```
 src/
